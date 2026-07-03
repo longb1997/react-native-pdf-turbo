@@ -1,0 +1,76 @@
+{
+  "name": "react-native-pdf-turbo",
+  "version": "1.0.4",
+  "description": "React Native PDF viewer with high performance, zoom, and support for large PDF files. Fast, memory-efficient, and supports annotations (annots) on iOS and Android.",
+  "main": "index.ts",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "react-native",
+    "react-native-pdf",
+    "pdf",
+    "pdf-viewer",
+    "react-native-pdf-viewer",
+    "pdf-reader",
+    "pdf-renderer",
+    "pdf-display",
+    "ios",
+    "android",
+    "large-pdf",
+    "big-pdf",
+    "pdf-performance",
+    "fast-pdf",
+    "memory-efficient",
+    "tiled-rendering",
+    "zoom",
+    "annotations",
+    "annots",
+    "pdfkit",
+    "pdfium",
+    "catiledlayer"
+  ],
+  "author": "Long Hoang <hoanglonghaui97@gmail.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-native": ">=0.73.0"
+  },
+  "devDependencies": {
+    "@react-native-community/eslint-config": "^3.2.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/react": "^18.2.6",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jest": "^27.9.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "2.8.8",
+    "react": "18.2.0",
+    "react-native": "0.73.11",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/longb1997/react-native-pdf-turbo"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "react-native-fs": "^2.20.0"
+  },
+  "codegenConfig": {
+    "name": "RNPdfTurboViewSpec",
+    "type": "components",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.reactnativepdfturbo"
+    }
+  }
+}
