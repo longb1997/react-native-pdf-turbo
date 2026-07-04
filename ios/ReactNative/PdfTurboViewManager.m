@@ -28,6 +28,9 @@ RCT_EXPORT_VIEW_PROPERTY(enableAntialiasing, BOOL)
 /// Password for encrypted PDFs.
 RCT_EXPORT_VIEW_PROPERTY(password, NSString)
 
+/// When NO, yields pan/zoom to a parent scroll container (continuous mode).
+RCT_EXPORT_VIEW_PROPERTY(gesturesEnabled, BOOL)
+
 #pragma mark - Event Callbacks
 
 /// Called when an error occurs during PDF loading or rendering.
@@ -41,6 +44,9 @@ RCT_EXPORT_VIEW_PROPERTY(onPageCount, RCTDirectEventBlock)
 
 /// Called when the PDF requires a password to open.
 RCT_EXPORT_VIEW_PROPERTY(onPasswordRequired, RCTDirectEventBlock)
+
+/// Called continuously with the current page's on-screen geometry (view px).
+RCT_EXPORT_VIEW_PROPERTY(onTransform, RCTDirectEventBlock)
 
 #pragma mark - Native Methods
 

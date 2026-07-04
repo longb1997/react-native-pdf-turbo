@@ -14,6 +14,7 @@ import type {
   PdfTurboViewProps,
   NativeLoadCompleteEvent,
   NativePageCountEvent,
+  NativeTransformEvent,
   NativePdfTurboViewProps,
 } from './types';
 
@@ -48,6 +49,7 @@ function PdfTurboView({
   password,
   maximumZoom = DEFAULT_MAXIMUM_ZOOM,
   enableAntialiasing = DEFAULT_ENABLE_ANTIALIASING,
+  gesturesEnabled = true,
   showNavigationControls = DEFAULT_SHOW_NAVIGATION_CONTROLS,
   style,
   onLoadComplete,
@@ -55,6 +57,7 @@ function PdfTurboView({
   onPageCount,
   onPageChange,
   onPasswordRequired,
+  onTransform,
 }: PdfTurboViewProps) {
   const [localPath, setLocalPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,8 +79,9 @@ function PdfTurboView({
     onPageCount,
     onPageChange,
     onPasswordRequired,
+    onTransform,
   });
-  callbacksRef.current = { onError, onLoadComplete, onPageCount, onPageChange, onPasswordRequired };
+  callbacksRef.current = { onError, onLoadComplete, onPageCount, onPageChange, onPasswordRequired, onTransform };
 
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +176,10 @@ function PdfTurboView({
     callbacksRef.current.onPageCount?.(numberOfPages);
   }, []);
 
+  const handleTransform = useCallback((event: NativeTransformEvent) => {
+    callbacksRef.current.onTransform?.(event.nativeEvent);
+  }, []);
+
   const handleError = useCallback<NonNullable<NativePdfTurboViewProps['onError']>>((event) => {
     callbacksRef.current.onError?.(event);
   }, []);
@@ -200,6 +208,7 @@ function PdfTurboView({
         source={localPath}
         page={showNavigationControls ? internalPage : page || 0}
         enableAntialiasing={enableAntialiasing}
+        gesturesEnabled={gesturesEnabled}
         maximumZoom={maximumZoom}
         password={password || ''}
         style={{ flex: 1 }}
@@ -207,6 +216,7 @@ function PdfTurboView({
         onError={handleError}
         onPageCount={handlePageCount}
         onPasswordRequired={handlePasswordRequired}
+        onTransform={handleTransform}
       />
       {showNavigationControls && (
         <PdfNavigationControls

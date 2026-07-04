@@ -36,6 +36,18 @@ type PageCountEvent = Readonly<{
 // Empty payload — fired when the document needs a password.
 type PasswordRequiredEvent = Readonly<{}>;
 
+// On-screen geometry of the current page, in view pixels. Emitted continuously
+// while the page is displayed/scrolled/zoomed so a JS overlay (e.g. an
+// annotation layer) can stay glued to the page. `x`/`y` are the page's top-left
+// on screen; `width`/`height` are the on-screen (already zoom-scaled) page size.
+type TransformEvent = Readonly<{
+  page: Int32;
+  x: Double;
+  y: Double;
+  width: Double;
+  height: Double;
+}>;
+
 export interface NativeProps extends ViewProps {
   /** Local file path (file://) of the PDF to render. */
   source?: string;
@@ -47,11 +59,14 @@ export interface NativeProps extends ViewProps {
   enableAntialiasing?: WithDefault<boolean, true>;
   /** Password for encrypted PDFs. */
   password?: string;
+  /** When false, the view yields pan/zoom to a parent scroll container. */
+  gesturesEnabled?: WithDefault<boolean, true>;
 
   onLoadComplete?: DirectEventHandler<LoadCompleteEvent>;
   onError?: DirectEventHandler<ErrorEvent>;
   onPageCount?: DirectEventHandler<PageCountEvent>;
   onPasswordRequired?: DirectEventHandler<PasswordRequiredEvent>;
+  onTransform?: DirectEventHandler<TransformEvent>;
 }
 
 export default codegenNativeComponent<NativeProps>('PdfTurboView') as HostComponent<NativeProps>;

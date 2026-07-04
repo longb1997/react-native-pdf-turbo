@@ -78,6 +78,20 @@ using namespace facebook::react;
       emitter->onPasswordRequired({});
     };
 
+    _pdfView.onTransform = ^(NSDictionary *body) {
+      __typeof(self) strongSelf = weakSelf;
+      if (!strongSelf) return;
+      const auto emitter = [strongSelf pdfEventEmitter];
+      if (!emitter) return;
+      emitter->onTransform({
+        .page = [body[@"page"] intValue],
+        .x = [body[@"x"] doubleValue],
+        .y = [body[@"y"] doubleValue],
+        .width = [body[@"width"] doubleValue],
+        .height = [body[@"height"] doubleValue],
+      });
+    };
+
     self.contentView = _pdfView;
   }
   return self;
@@ -107,6 +121,9 @@ using namespace facebook::react;
   }
   if (oldViewProps.password != newViewProps.password) {
     _pdfView.password = RCTNSStringFromString(newViewProps.password);
+  }
+  if (oldViewProps.gesturesEnabled != newViewProps.gesturesEnabled) {
+    _pdfView.gesturesEnabled = newViewProps.gesturesEnabled;
   }
   // Set page last so it applies against the (possibly new) document.
   if (oldViewProps.page != newViewProps.page) {

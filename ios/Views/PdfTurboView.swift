@@ -57,12 +57,27 @@ public final class PdfTurboView: UIScrollView {
         }
     }
 
+    /// When false, the view stops handling its own pan/zoom so touches fall
+    /// through to a parent scroll container. Used by the continuous-scroll mode
+    /// where an RN ScrollView drives vertical scrolling and each page is a
+    /// non-interactive turbo tile.
+    @objc public var gesturesEnabled: Bool = true {
+        didSet {
+            isScrollEnabled = gesturesEnabled
+            pinchGestureRecognizer?.isEnabled = gesturesEnabled
+            panGestureRecognizer.isEnabled = gesturesEnabled
+        }
+    }
+
     // MARK: - React Native Event Callbacks
 
     @objc public var onError: RCTDirectEventBlock?
     @objc public var onLoadComplete: RCTDirectEventBlock?
     @objc public var onPageCount: RCTDirectEventBlock?
     @objc public var onPasswordRequired: RCTDirectEventBlock?
+    /// Emitted continuously with the current page's on-screen geometry so a JS
+    /// overlay (annotation layer) can stay glued to the page during scroll/zoom.
+    @objc public var onTransform: RCTDirectEventBlock?
 
     // MARK: - Public Properties
 
@@ -84,6 +99,8 @@ public final class PdfTurboView: UIScrollView {
     private var lastBoundsSize: CGSize = .zero
     private var currentPageRect: CGRect?
     private var initialZoomScale: CGFloat = 1.0
+    /// 0-based index of the page currently on screen (for onTransform payloads).
+    private var currentIndex: Int = 0
 
     // MARK: - Initialization
 
@@ -250,6 +267,7 @@ private extension PdfTurboView {
 
         let pageRect = page.getBoxRect(.cropBox)
         currentPageRect = pageRect
+        currentIndex = index
 
         prepareForPageDisplay()
 
@@ -270,6 +288,7 @@ private extension PdfTurboView {
 
         applyFitScale(for: pageRect)
         centerContent()
+        emitTransform()
         notifyPageDisplayed(index: index, size: pageRect.size)
         prewarmNeighbors(around: index)
     }
@@ -351,6 +370,22 @@ private extension PdfTurboView {
 
         tiledPageView.frame = frame
     }
+
+    /// Emits the current page's on-screen rect (view px) so a JS overlay can
+    /// track it. The tiled page view is the scroll view's zooming content view,
+    /// so its frame is in scaled content space; subtracting contentOffset gives
+    /// the page's position within this view's bounds.
+    func emitTransform() {
+        guard let onTransform = onTransform, currentPageRect != nil else { return }
+        let frame = tiledPageView.frame
+        onTransform([
+            "page": currentIndex,
+            "x": frame.origin.x - contentOffset.x,
+            "y": frame.origin.y - contentOffset.y,
+            "width": frame.width,
+            "height": frame.height
+        ])
+    }
 }
 
 // MARK: - UIScrollViewDelegate
@@ -363,6 +398,11 @@ extension PdfTurboView: UIScrollViewDelegate {
 
     public func scrollViewDidZoom(_ scrollView: UIScrollView) {
         centerContent()
+        emitTransform()
+    }
+
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        emitTransform()
     }
 }
 
@@ -396,12 +436,14 @@ extension PdfTurboView {
         guard lastBoundsSize != bounds.size,
               let pageRect = currentPageRect else {
             centerContent()
+            emitTransform()
             return
         }
 
         lastBoundsSize = bounds.size
         applyFitScale(for: pageRect)
         centerContent()
+        emitTransform()
     }
 }
 

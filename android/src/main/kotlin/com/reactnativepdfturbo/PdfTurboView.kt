@@ -32,12 +32,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
-/**
- * View otimizada para renderização de PDF no Android
- * 
- * Usa PdfiumCore (pdfiumandroid) para renderização eficiente com suporte a Annots
- * com suporte a zoom via ScaleGestureDetector e pan via GestureDetector
- */
 class PdfTurboView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -82,6 +76,9 @@ class PdfTurboView @JvmOverloads constructor(
     private var maximumZoom: Float = 5.0f
     private var enableAntialiasing: Boolean = true
     private var password: String = ""
+    // When false the view ignores its own pan/zoom so a parent scroll container
+    // (continuous-scroll mode) receives the touches instead.
+    private var gesturesEnabled: Boolean = true
     
     private var scaleFactor: Float = 1.0f
     private var minScaleFactor: Float = 1.0f
@@ -140,6 +137,7 @@ class PdfTurboView @JvmOverloads constructor(
                     constrainTranslation()
                     scheduleTileUpdate()
                     invalidate()
+                    emitTransform()
                 }
                 return true
             }
@@ -191,6 +189,7 @@ class PdfTurboView @JvmOverloads constructor(
                 constrainTranslation()
                     scheduleTileUpdate()
                     invalidate()
+                    emitTransform()
             }
             start()
         }
@@ -217,6 +216,9 @@ class PdfTurboView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Continuous mode: let the parent scroll container own the gesture.
+        if (!gesturesEnabled) return false
+
         scaleGestureDetector.onTouchEvent(event)
         gestureDetector.onTouchEvent(event)
         
@@ -241,7 +243,8 @@ class PdfTurboView @JvmOverloads constructor(
                         constrainTranslation()
                     scheduleTileUpdate()
                     invalidate()
-                        
+                    emitTransform()
+
                         lastTouchX = x
                         lastTouchY = y
                     }
@@ -329,6 +332,10 @@ class PdfTurboView @JvmOverloads constructor(
         }
     }
 
+    fun setGesturesEnabled(enabled: Boolean) {
+        this.gesturesEnabled = enabled
+    }
+
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
         
@@ -338,6 +345,7 @@ class PdfTurboView @JvmOverloads constructor(
         } else if (changed && baseBitmap != null) {
             calculateFitScale()
             constrainTranslation()
+            emitTransform()
         }
     }
 
@@ -442,7 +450,8 @@ class PdfTurboView @JvmOverloads constructor(
         clearTiles()
         updateTiles()
         invalidate()
-        
+        emitTransform()
+
         val scale = calculateBaseScale()
         val bmpWidth = max(1, (pageWidth * scale).toInt())
         val bmpHeight = max(1, (pageHeight * scale).toInt())
@@ -667,6 +676,27 @@ class PdfTurboView @JvmOverloads constructor(
 
     private fun sendPasswordRequired() {
         emitEvent("onPasswordRequired", Arguments.createMap())
+    }
+
+    /**
+     * Emit the current page's on-screen rect (view px) so a JS overlay
+     * (annotation layer) can stay glued to the page during pan/zoom. Mirrors the
+     * geometry used by onDraw: content origin is the centered page plus the pan
+     * translation, sized by the current zoom scale.
+     */
+    private fun emitTransform() {
+        if (pageWidth == 0 || pageHeight == 0) return
+        val scaledWidth = pageWidth * scaleFactor
+        val scaledHeight = pageHeight * scaleFactor
+        val contentX = (width - scaledWidth) / 2 + translateX
+        val contentY = (height - scaledHeight) / 2 + translateY
+        emitEvent("onTransform", Arguments.createMap().apply {
+            putInt("page", pageIndex)
+            putDouble("x", contentX.toDouble())
+            putDouble("y", contentY.toDouble())
+            putDouble("width", scaledWidth.toDouble())
+            putDouble("height", scaledHeight.toDouble())
+        })
     }
 
     fun cleanup() {

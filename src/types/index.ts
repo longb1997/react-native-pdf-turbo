@@ -27,6 +27,29 @@ export interface PdfPageDimensions {
 }
 
 /**
+ * On-screen geometry of the current page, in view pixels. Emitted continuously
+ * while the page is displayed / scrolled / zoomed so a JS overlay (e.g. an
+ * annotation layer) can stay glued to the page.
+ *  - `page`          current page index (0-based)
+ *  - `x` / `y`       page top-left on screen (view px)
+ *  - `width`/`height` on-screen (zoom-scaled) page size (view px)
+ * Map a point in page space (PDF points) to screen px with:
+ *   screenX = x + (pointX / pageWidthPts)  * width
+ *   screenY = y + (pointY / pageHeightPts) * height
+ */
+export interface PdfTransform {
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface PdfTransformEvent {
+  nativeEvent: PdfTransform;
+}
+
+/**
  * Error event from native module
  */
 export interface PdfErrorEvent {
@@ -49,6 +72,12 @@ export interface PdfTurboViewProps {
   maximumZoom?: number;
   /** Enable antialiasing for better rendering quality. Default: true */
   enableAntialiasing?: boolean;
+  /**
+   * When false, the view yields pan/zoom gestures to a parent scroll container.
+   * Used to embed a page as a non-interactive tile inside an RN ScrollView
+   * (continuous-scroll mode). Default: true.
+   */
+  gesturesEnabled?: boolean;
   /** Show built-in navigation controls. Default: true */
   showNavigationControls?: boolean;
   /** Custom style for the container */
@@ -63,6 +92,12 @@ export interface PdfTurboViewProps {
   onPageChange?: (currentPage: number) => void;
   /** Callback when PDF requires a password */
   onPasswordRequired?: () => void;
+  /**
+   * Fired continuously with the current page's on-screen geometry (view px)
+   * while it is displayed / scrolled / zoomed. Use it to keep a JS overlay
+   * (annotation layer) aligned with the page. High-frequency during gestures.
+   */
+  onTransform?: (transform: PdfTransform) => void;
 }
 
 /**
@@ -82,6 +117,19 @@ export interface NativeLoadCompleteEvent {
 export interface NativePageCountEvent {
   nativeEvent: {
     numberOfPages: number;
+  };
+}
+
+/**
+ * Native event for the current page's on-screen transform.
+ */
+export interface NativeTransformEvent {
+  nativeEvent: {
+    page: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
   };
 }
 
@@ -124,6 +172,8 @@ export interface NativePdfTurboViewProps {
   maximumZoom?: number;
   /** Enable antialiasing for better rendering quality. Default: true */
   enableAntialiasing?: boolean;
+  /** When false, yields pan/zoom to a parent scroll container. Default: true. */
+  gesturesEnabled?: boolean;
   /** Callback when PDF is loaded successfully */
   onLoadComplete?: (event: NativeLoadCompleteEvent) => void;
   /** Callback when an error occurs */
@@ -132,6 +182,8 @@ export interface NativePdfTurboViewProps {
   onPageCount?: (event: NativePageCountEvent) => void;
   /** Callback when page changes */
   onPasswordRequired?: () => void;
+  /** Callback with the current page's on-screen geometry (view px). */
+  onTransform?: (event: NativeTransformEvent) => void;
   /** Custom style for the container */
   style?: ViewStyle;
 }

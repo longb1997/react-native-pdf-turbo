@@ -6,6 +6,8 @@ export type {
   PdfSource,
   PdfTurboViewProps,
   PdfPageDimensions,
+  PdfTransform,
+  PdfTransformEvent,
   PdfErrorEvent,
   PdfNavigationControlsProps,
   PdfLoadingOverlayProps,

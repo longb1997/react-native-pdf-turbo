@@ -6,15 +6,6 @@ import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.annotations.ReactProp
 
-/**
- * ViewManager que expõe o PdfTurboView para o React Native
- * 
- * Props suportadas:
- * - source: String (caminho do arquivo PDF)
- * - page: Int (página atual, 0-indexed)
- * - maximumZoom: Float (zoom máximo permitido)
- * - enableAntialiasing: Boolean (habilitar antialiasing)
- */
 class PdfTurboViewManager : SimpleViewManager<PdfTurboView>() {
 
     companion object {
@@ -52,12 +43,18 @@ class PdfTurboViewManager : SimpleViewManager<PdfTurboView>() {
         view.setPassword(password ?: "")
     }
 
+    @ReactProp(name = "gesturesEnabled", defaultBoolean = true)
+    fun setGesturesEnabled(view: PdfTurboView, gesturesEnabled: Boolean) {
+        view.setGesturesEnabled(gesturesEnabled)
+    }
+
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any>? {
         return MapBuilder.builder<String, Any>()
             .put("onLoadComplete", MapBuilder.of("registrationName", "onLoadComplete"))
             .put("onError", MapBuilder.of("registrationName", "onError"))
             .put("onPageCount", MapBuilder.of("registrationName", "onPageCount"))
             .put("onPasswordRequired", MapBuilder.of("registrationName", "onPasswordRequired"))
+            .put("onTransform", MapBuilder.of("registrationName", "onTransform"))
             .build()
     }
 
