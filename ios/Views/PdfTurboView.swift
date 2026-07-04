@@ -430,6 +430,16 @@ extension PdfTurboView {
         }
 
         handleBoundsChange()
+
+        // Recovery: if the page was fitted while our bounds were still zero/stale
+        // (common when embedded in a parent scroll container that sizes us after
+        // the async document load completes), the tiled layer ends up 0-height and
+        // nothing renders. Re-fit once bounds are valid again.
+        if let pageRect = currentPageRect, tiledPageView.frame.height <= 0 {
+            applyFitScale(for: pageRect)
+            centerContent()
+            emitTransform()
+        }
     }
 
     private func handleBoundsChange() {

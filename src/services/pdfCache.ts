@@ -57,6 +57,19 @@ export class PdfCacheService {
     onProgress?: (percent: number) => void,
     onStart?: (jobId: number) => void,
   ): Promise<string> {
+    // A local file needs no download — render it in place. This also avoids a
+    // corruption race when several views load the SAME local file at once (each
+    // would otherwise RNFS.downloadFile into the identical MD5-named cache path,
+    // clobbering each other). Return a bare path; the caller re-adds file://.
+    if (source.uri.startsWith('file://')) {
+      onProgress?.(100);
+      return source.uri.replace(/^file:\/\//, '');
+    }
+    if (source.uri.startsWith('/')) {
+      onProgress?.(100);
+      return source.uri;
+    }
+
     const localPath = this.getCacheFilePath(source);
 
     // Check if we can use cached version
