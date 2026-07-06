@@ -48,6 +48,21 @@ class PdfTurboViewManager : SimpleViewManager<PdfTurboView>() {
         view.setGesturesEnabled(gesturesEnabled)
     }
 
+    @ReactProp(name = "scrollMode")
+    fun setScrollMode(view: PdfTurboView, scrollMode: String?) {
+        view.setScrollMode(scrollMode ?: "continuous")
+    }
+
+    @ReactProp(name = "contentInsetTop", defaultFloat = 0f)
+    fun setContentInsetTop(view: PdfTurboView, value: Float) {
+        view.setContentInsetTop(value)
+    }
+
+    @ReactProp(name = "contentInsetBottom", defaultFloat = 0f)
+    fun setContentInsetBottom(view: PdfTurboView, value: Float) {
+        view.setContentInsetBottom(value)
+    }
+
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any>? {
         return MapBuilder.builder<String, Any>()
             .put("onLoadComplete", MapBuilder.of("registrationName", "onLoadComplete"))
@@ -55,6 +70,7 @@ class PdfTurboViewManager : SimpleViewManager<PdfTurboView>() {
             .put("onPageCount", MapBuilder.of("registrationName", "onPageCount"))
             .put("onPasswordRequired", MapBuilder.of("registrationName", "onPasswordRequired"))
             .put("onTransform", MapBuilder.of("registrationName", "onTransform"))
+            .put("onPagesLayout", MapBuilder.of("registrationName", "onPagesLayout"))
             .build()
     }
 
