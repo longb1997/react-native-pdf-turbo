@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-06
+
+### Added
+
+- **Continuous scroll mode** on both iOS and Android: all pages are stacked
+  vertically, fit-to-width, inside a single zooming/scrolling view. Enabled via
+  the new `scrollMode` prop (`'continuous'` | `'paged'`).
+- `onPagesLayout` event — streams every visible page's on-screen rect (view px)
+  plus its PDF point size as JSON while scrolling/zooming, so a host app can
+  position a per-page annotation overlay.
+- `contentInsetTop` / `contentInsetBottom` props (continuous mode) to clear a
+  floating header/toolbar.
+- `onTransform` event and `gesturesEnabled` prop for building an annotation
+  overlay that stays glued to the page during pan/zoom.
+- A runnable example app (`example/`, RN 0.86, New Architecture) demonstrating
+  continuous vs. paged viewing and caching.
+
+### Changed
+
+- **BREAKING (default):** `scrollMode` now defaults to `'continuous'`. Pass
+  `scrollMode="paged"` to keep the previous one-page-at-a-time behavior.
+
+### Fixed
+
+- Skip the download step for local `file://` sources; recover a 0-height tiled
+  layer on iOS.
+- Android: fix a compile error in the event dispatch path (`Event<Event<*>>`
+  did not satisfy its self-referential bound under RN 0.86).
+
 ## [1.0.4] - 2026-07-03
 
 ### Changed

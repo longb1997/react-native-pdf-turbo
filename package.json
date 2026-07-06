@@ -1,6 +1,6 @@
 {
   "name": "react-native-pdf-turbo",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "React Native PDF viewer with high performance, zoom, and support for large PDF files. Fast, memory-efficient, and supports annotations (annots) on iOS and Android.",
   "main": "index.ts",
   "types": "index.d.ts",
