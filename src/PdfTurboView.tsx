@@ -50,7 +50,7 @@ function PdfTurboView({
   maximumZoom = DEFAULT_MAXIMUM_ZOOM,
   enableAntialiasing = DEFAULT_ENABLE_ANTIALIASING,
   gesturesEnabled = true,
-  scrollMode = 'paged',
+  scrollMode = 'continuous',
   contentInsetTop = 0,
   contentInsetBottom = 0,
   showNavigationControls = DEFAULT_SHOW_NAVIGATION_CONTROLS,

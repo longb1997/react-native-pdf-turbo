@@ -93,8 +93,8 @@ export interface PdfTurboViewProps {
    */
   gesturesEnabled?: boolean;
   /**
-   * 'paged' (default) shows one page with pinch-zoom; 'continuous' stacks all
-   * pages vertically with native scroll + pinch-zoom.
+   * 'continuous' (default) stacks all pages vertically with native scroll +
+   * pinch-zoom; 'paged' shows one page at a time with pinch-zoom.
    */
   scrollMode?: PdfScrollMode;
   /** Continuous mode: top content inset in px (clears a floating header). */

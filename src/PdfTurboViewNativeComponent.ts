@@ -68,7 +68,7 @@ export interface NativeProps extends ViewProps {
   /** When false, the view yields pan/zoom to a parent scroll container. */
   gesturesEnabled?: WithDefault<boolean, true>;
   /** "paged" (one page + pinch-zoom) or "continuous" (all pages, vertical scroll). */
-  scrollMode?: WithDefault<string, 'paged'>;
+  scrollMode?: WithDefault<string, 'continuous'>;
   /** Continuous mode: top content inset in px. */
   contentInsetTop?: WithDefault<Double, 0>;
   /** Continuous mode: bottom content inset in px. */

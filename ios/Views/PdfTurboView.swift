@@ -71,7 +71,7 @@ public final class PdfTurboView: UIScrollView {
 
     /// "paged" (one page + pinch-zoom) or "continuous" (all pages stacked
     /// vertically, fit-to-width, with native scroll + pinch-zoom).
-    @objc public var scrollMode: String = "paged" {
+    @objc public var scrollMode: String = "continuous" {
         didSet {
             guard scrollMode != oldValue, pdfDocument != nil else { return }
             rebuildForMode()
