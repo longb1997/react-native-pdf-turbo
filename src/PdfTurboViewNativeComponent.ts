@@ -36,6 +36,12 @@ type PageCountEvent = Readonly<{
 // Empty payload — fired when the document needs a password.
 type PasswordRequiredEvent = Readonly<{}>;
 
+// Continuous mode: visible pages' on-screen rects, JSON-encoded as
+// `[{page,x,y,width,height}, ...]` (a string avoids array-in-event codegen).
+type PagesLayoutEvent = Readonly<{
+  pages: string;
+}>;
+
 // On-screen geometry of the current page, in view pixels. Emitted continuously
 // while the page is displayed/scrolled/zoomed so a JS overlay (e.g. an
 // annotation layer) can stay glued to the page. `x`/`y` are the page's top-left
@@ -61,12 +67,19 @@ export interface NativeProps extends ViewProps {
   password?: string;
   /** When false, the view yields pan/zoom to a parent scroll container. */
   gesturesEnabled?: WithDefault<boolean, true>;
+  /** "paged" (one page + pinch-zoom) or "continuous" (all pages, vertical scroll). */
+  scrollMode?: WithDefault<string, 'paged'>;
+  /** Continuous mode: top content inset in px. */
+  contentInsetTop?: WithDefault<Double, 0>;
+  /** Continuous mode: bottom content inset in px. */
+  contentInsetBottom?: WithDefault<Double, 0>;
 
   onLoadComplete?: DirectEventHandler<LoadCompleteEvent>;
   onError?: DirectEventHandler<ErrorEvent>;
   onPageCount?: DirectEventHandler<PageCountEvent>;
   onPasswordRequired?: DirectEventHandler<PasswordRequiredEvent>;
   onTransform?: DirectEventHandler<TransformEvent>;
+  onPagesLayout?: DirectEventHandler<PagesLayoutEvent>;
 }
 
 export default codegenNativeComponent<NativeProps>('PdfTurboView') as HostComponent<NativeProps>;

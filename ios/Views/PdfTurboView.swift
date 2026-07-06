@@ -69,6 +69,20 @@ public final class PdfTurboView: UIScrollView {
         }
     }
 
+    /// "paged" (one page + pinch-zoom) or "continuous" (all pages stacked
+    /// vertically, fit-to-width, with native scroll + pinch-zoom).
+    @objc public var scrollMode: String = "paged" {
+        didSet {
+            guard scrollMode != oldValue, pdfDocument != nil else { return }
+            rebuildForMode()
+        }
+    }
+
+    /// Continuous mode: top/bottom content inset (px) so the document clears a
+    /// floating header / toolbar. First page starts below `contentInsetTop`.
+    @objc public var contentInsetTop: NSNumber = 0 { didSet { applyContinuousInset() } }
+    @objc public var contentInsetBottom: NSNumber = 0 { didSet { applyContinuousInset() } }
+
     // MARK: - React Native Event Callbacks
 
     @objc public var onError: RCTDirectEventBlock?
@@ -78,6 +92,9 @@ public final class PdfTurboView: UIScrollView {
     /// Emitted continuously with the current page's on-screen geometry so a JS
     /// overlay (annotation layer) can stay glued to the page during scroll/zoom.
     @objc public var onTransform: RCTDirectEventBlock?
+    /// Continuous mode: emitted with every visible page's on-screen rect (view px)
+    /// so a JS overlay can position per-page annotations while scrolling/zooming.
+    @objc public var onPagesLayout: RCTDirectEventBlock?
 
     // MARK: - Public Properties
 
@@ -101,6 +118,16 @@ public final class PdfTurboView: UIScrollView {
     private var initialZoomScale: CGFloat = 1.0
     /// 0-based index of the page currently on screen (for onTransform payloads).
     private var currentIndex: Int = 0
+
+    // ── continuous-mode state ────────────────────────────────────────────────
+    private var isContinuous: Bool { scrollMode == "continuous" }
+    private var contentContainer: UIView?
+    private var continuousPageViews: [TiledPDFPageView] = []
+    private var continuousFrames: [CGRect] = []     // fit-width frames (zoom=1)
+    private var continuousPts: [CGSize] = []         // each page's point size
+    private var continuousLaidOut = false
+    private var continuousLayoutWidth: CGFloat = 0
+    private let continuousGap: CGFloat = 12
 
     // MARK: - Initialization
 
@@ -166,6 +193,7 @@ private extension PdfTurboView {
         resetDocument()
         pdfURL = nil
         FlattenedPageCache.shared.removeAll()
+        teardownContinuous()
         pendingPageIndex = page.intValue
         needsLoad = true
         setNeedsLayout()
@@ -228,6 +256,12 @@ private extension PdfTurboView {
             guard let self = self else { return }
             self.onPageCount?(["numberOfPages": NSNumber(value: self.pageCount)])
             self.pdfDelegate?.pdfView?(self, didLoadWithPageCount: self.pageCount)
+        }
+
+        if isContinuous {
+            continuousLaidOut = false
+            setNeedsLayout()
+            return
         }
 
         // Display pending or first page
@@ -388,20 +422,163 @@ private extension PdfTurboView {
     }
 }
 
+// MARK: - Continuous Mode
+
+private extension PdfTurboView {
+
+    func teardownContinuous() {
+        continuousPageViews.forEach { $0.cancel(); $0.removeFromSuperview() }
+        continuousPageViews.removeAll()
+        continuousFrames.removeAll()
+        contentContainer?.removeFromSuperview()
+        contentContainer = nil
+        continuousLaidOut = false
+        continuousLayoutWidth = 0
+    }
+
+    /// Rebuild after a live scrollMode switch (rare — usually set once at mount).
+    func rebuildForMode() {
+        teardownContinuous()
+        tiledPageView?.cancel()
+        tiledPageView?.removeFromSuperview()
+        let fresh = TiledPDFPageView(frame: bounds)
+        fresh.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        fresh.configuration = configuration
+        addSubview(fresh)
+        tiledPageView = fresh
+        currentPageRect = nil
+        zoomScale = 1
+        contentOffset = .zero
+        if let doc = pdfDocument {
+            if isContinuous {
+                setNeedsLayout()
+            } else {
+                displayPage(at: clampPageIndex(currentIndex, for: doc))
+            }
+        }
+    }
+
+    /// Stack every page vertically, fit-to-width, inside a single zooming
+    /// container. Each page is a CATiledLayer view that renders lazily.
+    func layoutContinuous() {
+        guard let document = pdfDocument, bounds.width > 0 else { return }
+
+        contentContainer?.removeFromSuperview()
+        continuousPageViews.removeAll()
+        continuousFrames.removeAll()
+        continuousPts.removeAll()
+
+        zoomScale = 1
+        let width = bounds.width
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: width, height: 0))
+        var y: CGFloat = 0
+        for i in 0..<document.numberOfPages {
+            guard let pdfPage = document.page(at: i + 1) else { continue }
+            let box = pdfPage.getBoxRect(.cropBox)
+            let aspect = box.width > 0 ? box.height / box.width : 1.414
+            let h = width * aspect
+            let frame = CGRect(x: 0, y: y, width: width, height: h)
+            let pv = TiledPDFPageView(frame: frame)
+            pv.configuration = configuration
+            pv.enableAntialiasing = configuration.enableAntialiasing
+            pv.pdfURL = pdfURL
+            pv.pageIndex = i
+            pv.pdfPage = pdfPage
+            container.addSubview(pv)
+            pv.preparePage()
+            continuousPageViews.append(pv)
+            continuousFrames.append(frame)
+            continuousPts.append(CGSize(width: box.width, height: box.height))
+            y += h + continuousGap
+        }
+        let totalHeight = max(0, y - continuousGap)
+        container.frame = CGRect(x: 0, y: 0, width: width, height: totalHeight)
+        addSubview(container)
+        contentContainer = container
+        continuousLaidOut = true
+        continuousLayoutWidth = width
+
+        minimumZoomScale = 1
+        maximumZoomScale = configuration.maximumZoom
+        contentSize = container.frame.size
+        applyContinuousInset()
+        // Start scrolled to the very top, accounting for the top inset.
+        contentOffset = CGPoint(x: 0, y: -contentInset.top)
+    }
+
+    func applyContinuousInset() {
+        guard isContinuous else {
+            contentInset = .zero
+            return
+        }
+        contentInset = UIEdgeInsets(
+            top: CGFloat(truncating: contentInsetTop),
+            left: 0,
+            bottom: CGFloat(truncating: contentInsetBottom),
+            right: 0
+        )
+    }
+
+    /// Emit every visible page's on-screen rect (viewport-relative px) so the JS
+    /// overlay can position per-page annotations.
+    func emitPagesLayout() {
+        guard isContinuous, let onPagesLayout = onPagesLayout, contentContainer != nil else { return }
+        var pages: [[String: Any]] = []
+        let viewH = bounds.height
+        for (i, pv) in continuousPageViews.enumerated() {
+            // convert() accounts for the container's zoom transform; subtract
+            // contentOffset to get a rect relative to the visible viewport.
+            let contentRect = self.convert(pv.bounds, from: pv)
+            let rect = CGRect(
+                x: contentRect.origin.x - contentOffset.x,
+                y: contentRect.origin.y - contentOffset.y,
+                width: contentRect.width,
+                height: contentRect.height
+            )
+            // Cull pages fully outside the viewport (± one page margin).
+            if rect.maxY < -rect.height || rect.minY > viewH + rect.height { continue }
+            let pts = i < continuousPts.count ? continuousPts[i] : CGSize(width: rect.width, height: rect.height)
+            pages.append([
+                "page": i,
+                "x": rect.origin.x,
+                "y": rect.origin.y,
+                "width": rect.width,
+                "height": rect.height,
+                "ptsW": pts.width,
+                "ptsH": pts.height
+            ])
+        }
+        // Payload as a JSON string — avoids array-in-event codegen fragility and
+        // works identically over the legacy-interop and Fabric event paths.
+        if let data = try? JSONSerialization.data(withJSONObject: pages),
+           let json = String(data: data, encoding: .utf8) {
+            onPagesLayout(["pages": json])
+        }
+    }
+}
+
 // MARK: - UIScrollViewDelegate
 
 extension PdfTurboView: UIScrollViewDelegate {
 
     public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-        tiledPageView
+        isContinuous ? contentContainer : tiledPageView
     }
 
     public func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        if isContinuous {
+            emitPagesLayout()
+            return
+        }
         centerContent()
         emitTransform()
     }
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if isContinuous {
+            emitPagesLayout()
+            return
+        }
         emitTransform()
     }
 }
@@ -426,6 +603,16 @@ extension PdfTurboView {
             needsLoad = false
             loadDocument()
             lastBoundsSize = bounds.size
+            return
+        }
+
+        if isContinuous {
+            // (Re)build the stacked page layout once bounds are known, or when the
+            // available width changes (rotation / resize) so pages re-fit width.
+            if pdfDocument != nil && (!continuousLaidOut || abs(continuousLayoutWidth - bounds.width) > 0.5) {
+                layoutContinuous()
+            }
+            emitPagesLayout()
             return
         }
 

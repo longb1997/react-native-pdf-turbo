@@ -49,6 +49,20 @@ export interface PdfTransformEvent {
   nativeEvent: PdfTransform;
 }
 
+/** One visible page's on-screen rect (view px) + point size, in continuous mode. */
+export interface PdfPageRect {
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Page size in PDF points (for mapping annotation geometry). */
+  ptsW: number;
+  ptsH: number;
+}
+
+export type PdfScrollMode = 'paged' | 'continuous';
+
 /**
  * Error event from native module
  */
@@ -78,6 +92,15 @@ export interface PdfTurboViewProps {
    * (continuous-scroll mode). Default: true.
    */
   gesturesEnabled?: boolean;
+  /**
+   * 'paged' (default) shows one page with pinch-zoom; 'continuous' stacks all
+   * pages vertically with native scroll + pinch-zoom.
+   */
+  scrollMode?: PdfScrollMode;
+  /** Continuous mode: top content inset in px (clears a floating header). */
+  contentInsetTop?: number;
+  /** Continuous mode: bottom content inset in px (clears a floating toolbar). */
+  contentInsetBottom?: number;
   /** Show built-in navigation controls. Default: true */
   showNavigationControls?: boolean;
   /** Custom style for the container */
@@ -98,6 +121,11 @@ export interface PdfTurboViewProps {
    * (annotation layer) aligned with the page. High-frequency during gestures.
    */
   onTransform?: (transform: PdfTransform) => void;
+  /**
+   * Continuous mode: fired with every visible page's on-screen rect (view px)
+   * on scroll/zoom, so a JS overlay can position per-page annotations.
+   */
+  onPagesLayout?: (pages: PdfPageRect[]) => void;
 }
 
 /**
@@ -174,6 +202,11 @@ export interface NativePdfTurboViewProps {
   enableAntialiasing?: boolean;
   /** When false, yields pan/zoom to a parent scroll container. Default: true. */
   gesturesEnabled?: boolean;
+  /** "paged" or "continuous". */
+  scrollMode?: string;
+  /** Continuous mode content insets (px). */
+  contentInsetTop?: number;
+  contentInsetBottom?: number;
   /** Callback when PDF is loaded successfully */
   onLoadComplete?: (event: NativeLoadCompleteEvent) => void;
   /** Callback when an error occurs */
@@ -184,6 +217,8 @@ export interface NativePdfTurboViewProps {
   onPasswordRequired?: () => void;
   /** Callback with the current page's on-screen geometry (view px). */
   onTransform?: (event: NativeTransformEvent) => void;
+  /** Continuous mode: visible pages' rects as a JSON string. */
+  onPagesLayout?: (event: {nativeEvent: {pages: string}}) => void;
   /** Custom style for the container */
   style?: ViewStyle;
 }

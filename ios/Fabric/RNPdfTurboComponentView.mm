@@ -92,6 +92,15 @@ using namespace facebook::react;
       });
     };
 
+    _pdfView.onPagesLayout = ^(NSDictionary *body) {
+      __typeof(self) strongSelf = weakSelf;
+      if (!strongSelf) return;
+      const auto emitter = [strongSelf pdfEventEmitter];
+      if (!emitter) return;
+      NSString *pages = body[@"pages"] ?: @"[]";
+      emitter->onPagesLayout({.pages = std::string([pages UTF8String])});
+    };
+
     self.contentView = _pdfView;
   }
   return self;
@@ -124,6 +133,15 @@ using namespace facebook::react;
   }
   if (oldViewProps.gesturesEnabled != newViewProps.gesturesEnabled) {
     _pdfView.gesturesEnabled = newViewProps.gesturesEnabled;
+  }
+  if (oldViewProps.scrollMode != newViewProps.scrollMode) {
+    _pdfView.scrollMode = RCTNSStringFromString(newViewProps.scrollMode);
+  }
+  if (oldViewProps.contentInsetTop != newViewProps.contentInsetTop) {
+    _pdfView.contentInsetTop = @(newViewProps.contentInsetTop);
+  }
+  if (oldViewProps.contentInsetBottom != newViewProps.contentInsetBottom) {
+    _pdfView.contentInsetBottom = @(newViewProps.contentInsetBottom);
   }
   // Set page last so it applies against the (possibly new) document.
   if (oldViewProps.page != newViewProps.page) {

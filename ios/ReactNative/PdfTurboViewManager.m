@@ -31,6 +31,16 @@ RCT_EXPORT_VIEW_PROPERTY(password, NSString)
 /// When NO, yields pan/zoom to a parent scroll container (continuous mode).
 RCT_EXPORT_VIEW_PROPERTY(gesturesEnabled, BOOL)
 
+/// "paged" or "continuous" render mode.
+RCT_EXPORT_VIEW_PROPERTY(scrollMode, NSString)
+
+/// Continuous mode: top/bottom content inset (px).
+RCT_EXPORT_VIEW_PROPERTY(contentInsetTop, NSNumber)
+RCT_EXPORT_VIEW_PROPERTY(contentInsetBottom, NSNumber)
+
+/// Continuous mode: visible pages' on-screen rects (JSON string payload).
+RCT_EXPORT_VIEW_PROPERTY(onPagesLayout, RCTDirectEventBlock)
+
 #pragma mark - Event Callbacks
 
 /// Called when an error occurs during PDF loading or rendering.

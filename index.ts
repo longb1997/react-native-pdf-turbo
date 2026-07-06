@@ -8,6 +8,8 @@ export type {
   PdfPageDimensions,
   PdfTransform,
   PdfTransformEvent,
+  PdfPageRect,
+  PdfScrollMode,
   PdfErrorEvent,
   PdfNavigationControlsProps,
   PdfLoadingOverlayProps,

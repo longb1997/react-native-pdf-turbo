@@ -50,6 +50,9 @@ function PdfTurboView({
   maximumZoom = DEFAULT_MAXIMUM_ZOOM,
   enableAntialiasing = DEFAULT_ENABLE_ANTIALIASING,
   gesturesEnabled = true,
+  scrollMode = 'paged',
+  contentInsetTop = 0,
+  contentInsetBottom = 0,
   showNavigationControls = DEFAULT_SHOW_NAVIGATION_CONTROLS,
   style,
   onLoadComplete,
@@ -58,6 +61,7 @@ function PdfTurboView({
   onPageChange,
   onPasswordRequired,
   onTransform,
+  onPagesLayout,
 }: PdfTurboViewProps) {
   const [localPath, setLocalPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,8 +84,17 @@ function PdfTurboView({
     onPageChange,
     onPasswordRequired,
     onTransform,
+    onPagesLayout,
   });
-  callbacksRef.current = { onError, onLoadComplete, onPageCount, onPageChange, onPasswordRequired, onTransform };
+  callbacksRef.current = {
+    onError,
+    onLoadComplete,
+    onPageCount,
+    onPageChange,
+    onPasswordRequired,
+    onTransform,
+    onPagesLayout,
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -180,6 +193,16 @@ function PdfTurboView({
     callbacksRef.current.onTransform?.(event.nativeEvent);
   }, []);
 
+  const handlePagesLayout = useCallback((event: {nativeEvent: {pages: string}}) => {
+    const cb = callbacksRef.current.onPagesLayout;
+    if (!cb) return;
+    try {
+      cb(JSON.parse(event.nativeEvent.pages || '[]'));
+    } catch {
+      // malformed payload — ignore this frame
+    }
+  }, []);
+
   const handleError = useCallback<NonNullable<NativePdfTurboViewProps['onError']>>((event) => {
     callbacksRef.current.onError?.(event);
   }, []);
@@ -209,6 +232,9 @@ function PdfTurboView({
         page={showNavigationControls ? internalPage : page || 0}
         enableAntialiasing={enableAntialiasing}
         gesturesEnabled={gesturesEnabled}
+        scrollMode={scrollMode}
+        contentInsetTop={contentInsetTop}
+        contentInsetBottom={contentInsetBottom}
         maximumZoom={maximumZoom}
         password={password || ''}
         style={{ flex: 1 }}
@@ -217,6 +243,7 @@ function PdfTurboView({
         onPageCount={handlePageCount}
         onPasswordRequired={handlePasswordRequired}
         onTransform={handleTransform}
+        onPagesLayout={handlePagesLayout}
       />
       {showNavigationControls && (
         <PdfNavigationControls
