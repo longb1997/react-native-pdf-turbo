@@ -51,7 +51,7 @@ class PdfTurboView @JvmOverloads constructor(
         // Continuous mode: gap between stacked pages, in dp.
         private const val CONTINUOUS_GAP_DP = 12f
         // Continuous mode: how many rendered page bitmaps to keep cached.
-        private const val MAX_CACHED_PAGES = 6
+        private const val MAX_CACHED_PAGES = 8
         private const val CONTINUOUS_RENDER_DELAY_MS = 80L
     }
 
@@ -1040,9 +1040,14 @@ class PdfTurboView @JvmOverloads constructor(
     private fun renderVisiblePages() {
         val range = visiblePageRange() ?: return
         val zoom = cZoom
-        val visible = range.toSet()
+        // Also render one page above/below the viewport so pages are ready
+        // before they scroll into view — keeps fast scrolling from flashing white.
+        val first = max(0, range.first - 1)
+        val last = min(cMeasured - 1, range.last + 1)
+        val renderRange = first..last
+        val keep = renderRange.toSet()
 
-        for (i in range) {
+        for (i in renderRange) {
             val targetW = computeRenderWidth(i, zoom)
             val haveW = pageBitmapWidth[i]
             val needs = pageBitmaps[i] == null ||
@@ -1053,9 +1058,9 @@ class PdfTurboView @JvmOverloads constructor(
             }
         }
 
-        // Evict cached pages that are no longer visible when over budget.
+        // Evict cached pages outside the render window when over budget.
         if (pageBitmaps.size > MAX_CACHED_PAGES) {
-            val evictable = pageBitmaps.keys.filter { it !in visible }.sortedByDescending {
+            val evictable = pageBitmaps.keys.filter { it !in keep }.sortedByDescending {
                 min(kotlin.math.abs(it - range.first), kotlin.math.abs(it - range.last))
             }
             for (k in evictable) {
